@@ -1,0 +1,142 @@
+version: '3'
+
+# https://docs.docker.com/compose/compose-file/deploy/#resources
+
+services:
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.5
+    container_name: es01
+    environment:
+      - node.name=es01
+      - cluster.name=es-cluster
+      - discovery.seed_hosts=es02,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data01:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - elastic
+    restart: always # 开机启动
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 2048M
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.5
+    container_name: es02
+    environment:
+      - node.name=es02
+      - cluster.name=es-cluster
+      - discovery.seed_hosts=es01,es03
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data02:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+    restart: always # 开机启动
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 2048M
+  es03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.5
+    container_name: es03
+    environment:
+      - node.name=es03
+      - cluster.name=es-cluster
+      - discovery.seed_hosts=es01,es02
+      - cluster.initial_master_nodes=es01,es02,es03
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es_data03:/usr/share/elasticsearch/data
+    networks:
+      - elastic
+    restart: always # 开机启动
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 2048M
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.5
+    container_name: logstash
+    volumes:
+      - ./config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
+      - ./config/pipeline:/usr/share/logstash/pipeline:ro,Z
+    ports:
+      - "5044:5044"
+      - "50000:50000/tcp"
+      - "50000:50000/udp"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: -Xms256m -Xmx256m
+      LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD:-}
+    networks:
+      - elastic
+    depends_on:
+      - es01
+      - es02
+      - es03
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.5
+    container_name: kibana
+    volumes:
+      - ./config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
+    ports:
+      - "5601:5601"
+    networks:
+      - elastic
+    restart: always # 开机启动
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: '2.00'
+          memory: 1024M
+    depends_on:
+      - es01
+      - es02
+      - es03
+
+volumes:
+  es_data01:
+    driver: local
+  es_data02:
+    driver: local
+  es_data03:
+    driver: local
+
+networks:
+  elastic:
+    driver: bridge
