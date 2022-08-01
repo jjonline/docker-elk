@@ -102,6 +102,7 @@ services:
       LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD:-}
     networks:
       - elastic
+    restart: always # 开机启动
     depends_on:
       - es01
       - es02
