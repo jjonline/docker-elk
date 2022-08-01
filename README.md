@@ -8,12 +8,10 @@
 .
 ├── README.md
 ├── config
-│     ├── elasticsearch.yml c   ES配置
+│     ├── elasticsearch.yml    ES配置
 │     ├── kibana.yml           kibana配置
 │     ├── logstash.yml         logstash配置
 │     └── pipeline             logstash的流水线配置目录
 │         └── logstash.conf
-├── docker-compose.yaml
-└── logstash
-    └── pipeline
+└── docker-compose.yaml
 ````
